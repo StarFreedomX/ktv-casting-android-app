@@ -17,5 +17,22 @@ object RustEngine {
 
     // 查询接口：由 KT 轮询获取状态
     external fun queryProgress(): Long      // 返回当前秒数
+
     external fun queryTotalDuration(): Long // 返回总秒数
+
+    external fun resetEngine()
+    /**
+     * @return 1 为播放中，0 为暂停
+     */
+    external fun togglePause(): Int
+
+    /**
+     * @param target 目标值
+     * @return 新音量，-1 为失败
+     */
+    external fun setVolume(target: Int): Int
+    /**
+     * @return 音量，-1 为失败
+     */
+    external fun getVolume(): Int
 }

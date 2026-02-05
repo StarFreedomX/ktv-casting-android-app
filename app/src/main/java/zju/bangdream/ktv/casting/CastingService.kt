@@ -7,10 +7,23 @@ import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class CastingService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pollingJob: Job? = null
+
+    companion object {
+        // 使用 StateFlow 存储进度状态
+        private val _playbackProgress = MutableStateFlow(Pair(0L, 0L))
+        val playbackProgress = _playbackProgress.asStateFlow()
+
+        // --- 新增：重置进度状态的方法 ---
+        fun resetProgress() {
+            _playbackProgress.value = Pair(0L, 0L)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -19,10 +32,10 @@ class CastingService : Service() {
         val roomId = intent?.getLongExtra("room_id", 0L) ?: 0L
         val location = intent?.getStringExtra("location") ?: ""
 
-        // 1. 立即显示通知栏（Android 要求）
-        startForeground(1, createNotification("准备投屏..."))
+        // 1. 准备通知栏
         val notification = createNotification("准备投屏...")
 
+        // 根据 Android 版本启动前台服务
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // API 34+
             startForeground(
                 1,
@@ -32,10 +45,11 @@ class CastingService : Service() {
         } else {
             startForeground(1, notification)
         }
+
         // 2. 初始化 Rust 引擎
         RustEngine.startEngine(baseUrl, roomId, location)
 
-        // 3. 开启“指挥官”轮询逻辑
+        // 3. 开启轮询逻辑
         startCommanderLoop()
 
         return START_STICKY
@@ -49,15 +63,17 @@ class CastingService : Service() {
             while (isActive) {
                 val current = RustEngine.queryProgress()
                 val total = RustEngine.queryTotalDuration()
-                Log.d("KTV_SERVICE", "当前进度: $current / 总计: $total")
+
+                // --- 修改：更新状态流，UI 侧 collectAsState 会感知到 ---
+                _playbackProgress.value = Pair(current, total)
+
                 if (current >= 0 && total > 0) {
-                    // 更新通知栏显示进度
-                    updateNotification("正在播放: $current / $total 秒")
+                    // --- 修改：更新通知栏显示进度 (使用格式化后的时间) ---
+                    updateNotification("正在播放: ${formatTime(current)} / ${formatTime(total)}")
 
                     // --- 核心控制逻辑 ---
-                    // 如果距离结束不到 2 秒，下达切歌指令
-                    if (total - current <= 2 && current > 5) { // current > 5 防止新歌刚开始就误切
-                        Log.i("KTV_CMD", "距离结束仅剩 ${total - current}s，KT 下达切歌指令")
+                    if (total - current <= 2 && current > 5) {
+                        Log.i("KTV_CMD", "距离结束仅剩 ${total - current}s，下达切歌指令")
                         RustEngine.nextSong()
 
                         // 切歌后强制等待 5 秒，防止重复触发
@@ -68,6 +84,14 @@ class CastingService : Service() {
                 delay(1000) // 每秒轮询一次
             }
         }
+    }
+
+    // --- 新增：时间格式化辅助函数 ---
+    private fun formatTime(seconds: Long): String {
+        if (seconds < 0) return "00:00"
+        val m = seconds / 60
+        val s = seconds % 60
+        return "%02d:%02d".format(m, s)
     }
 
     // --- 通知栏相关逻辑 ---
@@ -81,16 +105,18 @@ class CastingService : Service() {
             .setContentTitle("KTV 投屏助手")
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .setOngoing(true) // 建议设置，防止通知被意外划掉
             .build()
     }
 
     private fun updateNotification(content: String) {
-        val notification = createNotification(content)
         val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(1, notification)
+        manager.notify(1, createNotification(content))
     }
 
     override fun onDestroy() {
+        // --- 修改：销毁时重置 UI 状态流并取消协程 ---
+        resetProgress()
         serviceScope.cancel()
         super.onDestroy()
     }
