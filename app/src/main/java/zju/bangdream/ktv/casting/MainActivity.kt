@@ -93,13 +93,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CastingControlScreen(device: DlnaDeviceItem, onReset: () -> Unit) {
     val progressState by CastingService.playbackProgress.collectAsState()
     val (currentSec, totalSec) = progressState
 
-    // 状态维护：当前是否正在播放（初始假设为播放，后续由接口同步）
+    // 当前是否正在播放
     var isPlaying by remember { mutableStateOf(true) }
+
+    // 进度条拖动状态
+    var isDraggingProgress by remember { mutableStateOf(false) }
+    var dragProgressValue by remember { mutableFloatStateOf(0f) }
+
+    // 决定显示的秒数：如果正在拖动，显示拖动的值，否则显示系统轮询的值
+    val displaySec = if (isDraggingProgress) dragProgressValue.toLong() else currentSec
+    val totalProgress = if (totalSec > 0) totalSec.toFloat() else 100f
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -111,18 +120,45 @@ fun CastingControlScreen(device: DlnaDeviceItem, onReset: () -> Unit) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // 进度条
-        val progress = if (totalSec > 0) currentSec.toFloat() / totalSec.toFloat() else 0f
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxWidth().height(8.dp),
+        // 由进度条改为可拖动的 Slider
+        Slider(
+            value = displaySec.toFloat().coerceIn(0f, totalProgress),
+            onValueChange = {
+                isDraggingProgress = true
+                dragProgressValue = it
+            },
+            onValueChangeFinished = {
+                // 用户松手时，调用 Rust 接口跳转进度
+                val target = dragProgressValue.toInt()
+                thread {
+                    val res = RustEngine.jumpToSecs(target)
+                    Log.d("CastingControl", "跳转结果: $res 至 ${target}s")
+                }
+                isDraggingProgress = false
+            },
+            valueRange = 0f..totalProgress,
+            modifier = Modifier.fillMaxWidth(),
+            // 样式自定义，可以跟音量条保持一致
+            thumb = {
+                SliderDefaults.Thumb(
+                    interactionSource = remember { MutableInteractionSource() },
+                    thumbSize = DpSize(16.dp, 16.dp)
+                )
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    modifier = Modifier.height(4.dp)
+                )
+            }
         )
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(formatTime(currentSec))
+            // 使用 displaySec 确保拖动时时间文字也会同步变化
+            Text(formatTime(displaySec))
             Text(formatTime(totalSec))
         }
 
@@ -174,7 +210,6 @@ fun CastingControlScreen(device: DlnaDeviceItem, onReset: () -> Unit) {
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VolumeControlGroup() {
@@ -271,7 +306,6 @@ fun VolumeControlGroup() {
         }
     }
 }
-
 
 @Composable
 fun DeviceSelectorScreen(onDeviceSelect: (String, Long, DlnaDeviceItem) -> Unit) {

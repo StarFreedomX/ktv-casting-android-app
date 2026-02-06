@@ -29,7 +29,7 @@ class CastingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val baseUrl = intent?.getStringExtra("base_url") ?: ""
-        val roomId = intent?.getLongExtra("room_id", 0L) ?: 0L
+        val roomId = intent?.getStringExtra("room_id") ?: "1111"
         val location = intent?.getStringExtra("location") ?: ""
 
         // 1. 准备通知栏
@@ -81,7 +81,7 @@ class CastingService : Service() {
                     }
                 }
 
-                delay(1000) // 每秒轮询一次
+                delay(500) // 每秒轮询2次
             }
         }
     }

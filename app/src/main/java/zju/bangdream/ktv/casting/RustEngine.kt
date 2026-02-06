@@ -10,7 +10,7 @@ object RustEngine {
     external fun searchDevices(): Array<DlnaDeviceItem>
 
     // 核心初始化：启动 Rust 内部的 HttpServer 和状态机
-    external fun startEngine(baseUrl: String, roomId: Long, targetLocation: String)
+    external fun startEngine(baseUrl: String, roomId: String, targetLocation: String)
 
     // 控制接口：由 KT 决定何时调用
     external fun nextSong()
@@ -35,4 +35,9 @@ object RustEngine {
      * @return 音量，-1 为失败
      */
     external fun getVolume(): Int
+
+    /**
+     * @return 音量，-1 为失败
+     */
+    external fun jumpToSecs(target: Int): Int
 }
