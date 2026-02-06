@@ -63,8 +63,14 @@ class CastingService : Service() {
         pollingJob = serviceScope.launch {
             delay(2000)
             while (isActive) {
-                val current = RustEngine.queryProgress()
-                val total = RustEngine.queryTotalDuration()
+                delay(500)
+                val progress = RustEngine.queryProgress()
+                if (progress.size < 2) continue
+
+                val current = progress[0].toLong()
+                val total = progress[1].toLong()
+
+
                 val title = RustEngine.getCurrentSongTitle() // 获取 Rust 层存储的标题
 
                 _playbackProgress.value = Pair(current, total)
@@ -81,7 +87,7 @@ class CastingService : Service() {
                 } else {
                     updateNotification("当前播放: $title")
                 }
-                delay(500)
+
             }
         }
     }

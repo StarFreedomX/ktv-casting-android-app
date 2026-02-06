@@ -81,8 +81,8 @@ fun VolumeControlGroup() {
                     SliderDefaults.Thumb(
                         interactionSource = remember { MutableInteractionSource() },
                         modifier = Modifier
-                            .size(10.dp) // 声明尺寸
-                            .offset(y = 2.5.dp), // 如果还有极小偏差，用 offset 比 padding 更专业
+                            .size(10.dp)
+                            .offset(y = 2.5.dp),
                         thumbSize = DpSize(10.dp, 10.dp),
                         colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary)
                     )

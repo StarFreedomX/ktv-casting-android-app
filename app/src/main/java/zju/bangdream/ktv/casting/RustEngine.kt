@@ -16,9 +16,7 @@ object RustEngine {
     external fun nextSong()
 
     // 查询接口：由 KT 轮询获取状态
-    external fun queryProgress(): Long      // 返回当前秒数
-
-    external fun queryTotalDuration(): Long // 返回总秒数
+    external fun queryProgress(): IntArray      // 返回当前秒数
 
     external fun resetEngine()
     /**

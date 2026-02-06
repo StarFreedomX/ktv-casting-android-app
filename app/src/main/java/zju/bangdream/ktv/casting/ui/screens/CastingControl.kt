@@ -66,8 +66,32 @@ fun CastingControlContent(
 ) {
     var isDraggingProgress by remember { mutableStateOf(false) }
     var dragProgressValue by remember { mutableFloatStateOf(0f) }
+    var showResetDialog by remember { mutableStateOf(false) }
     val displaySec = if (isDraggingProgress) dragProgressValue.toLong() else currentSec
     val totalProgress = if (totalSec > 0) totalSec.toFloat() else 100f
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false }, // 点击弹窗外部关闭
+            title = { Text(text = "停止投屏") },
+            text = { Text(text = "确定要停止当前投屏并更换设备吗？这将会中断播放。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetDialog = false
+                        onReset()
+                    }
+                ) {
+                    Text("确定", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -175,7 +199,7 @@ fun CastingControlContent(
 
         // 退出/重置
         OutlinedButton(
-            onClick = onReset,
+            onClick = { showResetDialog = true },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("更换设备 / 停止投屏")
