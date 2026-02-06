@@ -2,7 +2,7 @@ package zju.bangdream.ktv.casting
 
 object RustEngine {
     init {
-        System.loadLibrary("ktv_casting")
+        System.loadLibrary("ktv_casting_lib")
     }
 
     // 基础接口

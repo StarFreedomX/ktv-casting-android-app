@@ -3,6 +3,7 @@ package zju.bangdream.ktv.casting
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -15,8 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlin.concurrent.thread
 
 class MainActivity : ComponentActivity() {
@@ -177,9 +182,22 @@ fun VolumeControlGroup() {
     var isDragging by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        thread {
-            val remoteVol = RustEngine.getVolume()
-            if (remoteVol != -1) { volumeValue = remoteVol }
+        withContext(Dispatchers.IO) {
+            var fetched = false
+            // 最多尝试 10 次，每次间隔 1 秒
+            repeat(10) { attempt ->
+                if (!fetched) {
+                    val remoteVol = RustEngine.getVolume()
+                    Log.d("VolumeControl", "尝试获取音量 (第${attempt + 1}次): $remoteVol")
+
+                    if (remoteVol >= 0) {
+                        volumeValue = remoteVol
+                        fetched = true
+                    } else {
+                        delay(1000)
+                    }
+                }
+            }
         }
     }
 
@@ -190,25 +208,26 @@ fun VolumeControlGroup() {
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        // 动态显示数字：只有在滑动时或者点击按钮时显现一秒（这里演示滑动实时显示）
+        // --- 这一行是修改重点：标签与数值并排 ---
         Row(
-            modifier = Modifier.fillMaxWidth()
-            .height(24.dp)
-            .padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "设备音量", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+            Text(
+                text = "设备音量",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Gray
+            )
 
-            // 如果正在拖动，显示当前数值
-            if (isDragging) {
-                Text(
-                    text = "$volumeValue",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(end = 48.dp) // 大致对齐滑块区域
-                )
-            }
+            // 常驻显示在标签右侧
+            Text(
+                text = " $volumeValue",
+                style = MaterialTheme.typography.labelMedium,
+                color = if (isDragging) MaterialTheme.colorScheme.primary else Color.Gray,
+                fontWeight = if (isDragging) FontWeight.Bold else FontWeight.Normal
+            )
         }
 
         Row(
@@ -223,11 +242,11 @@ fun VolumeControlGroup() {
             Slider(
                 value = volumeValue.toFloat(),
                 onValueChange = {
-                    isDragging = true // 开始滑动
+                    isDragging = true
                     volumeValue = it.toInt()
                 },
                 onValueChangeFinished = {
-                    isDragging = false // 停止滑动
+                    isDragging = false
                     commitVolume(volumeValue)
                 },
                 valueRange = 0f..100f,
@@ -235,18 +254,13 @@ fun VolumeControlGroup() {
                 thumb = {
                     SliderDefaults.Thumb(
                         interactionSource = remember { MutableInteractionSource() },
-                        thumbSize = DpSize(14.dp, 14.dp),
-                        colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary)
+                        thumbSize = DpSize(14.dp, 14.dp)
                     )
                 },
                 track = { sliderState ->
                     SliderDefaults.Track(
                         sliderState = sliderState,
-                        modifier = Modifier.height(2.dp),
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        modifier = Modifier.height(2.dp)
                     )
                 }
             )
@@ -257,6 +271,7 @@ fun VolumeControlGroup() {
         }
     }
 }
+
 
 @Composable
 fun DeviceSelectorScreen(onDeviceSelect: (String, Long, DlnaDeviceItem) -> Unit) {
