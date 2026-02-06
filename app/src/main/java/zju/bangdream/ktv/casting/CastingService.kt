@@ -15,13 +15,16 @@ class CastingService : Service() {
     private var pollingJob: Job? = null
 
     companion object {
-        // 使用 StateFlow 存储进度状态
         private val _playbackProgress = MutableStateFlow(Pair(0L, 0L))
         val playbackProgress = _playbackProgress.asStateFlow()
 
-        // --- 新增：重置进度状态的方法 ---
+        // 歌名状态流
+        private val _currentSongTitle = MutableStateFlow("正在加载...")
+        val currentSongTitle = _currentSongTitle.asStateFlow()
+
         fun resetProgress() {
             _playbackProgress.value = Pair(0L, 0L)
+            _currentSongTitle.value = "已停止"
         }
     }
 
@@ -58,30 +61,27 @@ class CastingService : Service() {
     private fun startCommanderLoop() {
         pollingJob?.cancel()
         pollingJob = serviceScope.launch {
-            Log.i("KTV_SERVICE", "loop start")
             delay(2000)
             while (isActive) {
                 val current = RustEngine.queryProgress()
                 val total = RustEngine.queryTotalDuration()
+                val title = RustEngine.getCurrentSongTitle() // 获取 Rust 层存储的标题
 
-                // --- 修改：更新状态流，UI 侧 collectAsState 会感知到 ---
                 _playbackProgress.value = Pair(current, total)
+                _currentSongTitle.value = title
 
                 if (current >= 0 && total > 0) {
-                    // --- 修改：更新通知栏显示进度 (使用格式化后的时间) ---
-                    updateNotification("正在播放: ${formatTime(current)} / ${formatTime(total)}")
+                    // 通知栏现在显示：[歌名] 进度
+                    updateNotification("$title (${formatTime(current)} / ${formatTime(total)})")
 
-                    // --- 核心控制逻辑 ---
                     if (total - current <= 2 && current > 5) {
-                        Log.i("KTV_CMD", "距离结束仅剩 ${total - current}s，下达切歌指令")
                         RustEngine.nextSong()
-
-                        // 切歌后强制等待 5 秒，防止重复触发
                         delay(5000)
                     }
+                } else {
+                    updateNotification("当前播放: $title")
                 }
-
-                delay(500) // 每秒轮询2次
+                delay(500)
             }
         }
     }

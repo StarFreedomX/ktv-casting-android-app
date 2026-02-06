@@ -17,24 +17,22 @@ import zju.bangdream.ktv.casting.RustEngine
 import zju.bangdream.ktv.casting.ui.components.VolumeControlGroup
 import kotlin.concurrent.thread
 
-/**
- * 有状态组件 (Stateful)：负责从 Service 获取实时数据，并处理与 Rust 层的交互
- */
 @Composable
 fun CastingControlScreen(
     device: DlnaDeviceItem,
     onReset: () -> Unit
 ) {
-    // 观察来自 Service 的播放进度流
     val progressState by CastingService.playbackProgress.collectAsState()
     val (currentSec, totalSec) = progressState
 
-    // 播放/暂停状态
+    // 观察歌名状态
+    val songTitle by CastingService.currentSongTitle.collectAsState()
+
     var isPlaying by remember { mutableStateOf(true) }
 
-    // 调用纯 UI 展示组件
     CastingControlContent(
         deviceName = device.name,
+        songTitle = songTitle, // 传入标题
         currentSec = currentSec,
         totalSec = totalSec,
         isPlaying = isPlaying,
@@ -42,15 +40,9 @@ fun CastingControlScreen(
             val result = RustEngine.togglePause()
             isPlaying = (result == 1)
         },
-        onNext = {
-            RustEngine.nextSong()
-        },
+        onNext = { RustEngine.nextSong() },
         onSeek = { target ->
-            // 在后台线程执行网络 IO 密集型操作
-            thread {
-                val res = RustEngine.jumpToSecs(target)
-                Log.d("CastingControl", "Seek result: $res at ${target}s")
-            }
+            thread { RustEngine.jumpToSecs(target) }
         },
         onReset = {
             CastingService.resetProgress()
@@ -59,14 +51,11 @@ fun CastingControlScreen(
     )
 }
 
-/**
- * 无状态组件 (Stateless)：负责 UI 布局。
- * 不直接依赖 RustEngine 或 Service，非常适合进行预览。
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CastingControlContent(
     deviceName: String,
+    songTitle: String, // 新增
     currentSec: Long,
     totalSec: Long,
     isPlaying: Boolean,
@@ -75,10 +64,8 @@ fun CastingControlContent(
     onSeek: (Int) -> Unit,
     onReset: () -> Unit
 ) {
-    // 处理进度条拖动时的本地临时状态，防止进度回跳
     var isDraggingProgress by remember { mutableStateOf(false) }
     var dragProgressValue by remember { mutableFloatStateOf(0f) }
-
     val displaySec = if (isDraggingProgress) dragProgressValue.toLong() else currentSec
     val totalProgress = if (totalSec > 0) totalSec.toFloat() else 100f
 
@@ -89,9 +76,31 @@ fun CastingControlContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // 头部信息
-        Text(text = "正在投屏中", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-        Text(text = deviceName, style = MaterialTheme.typography.headlineMedium)
+        // --- 头部设计 ---
+        Text(text = "正在投屏至", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Surface(
+            color = Color(0xFFEEEEEE),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+        ) {
+            Text(
+                text = deviceName,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.DarkGray
+            )
+        }
+
+        Spacer(modifier = Modifier.height(25.dp))
+
+        // 歌曲标题：大字显示
+        Text(
+            text = songTitle,
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            maxLines = 2
+        )
 
         Spacer(modifier = Modifier.height(48.dp))
 
@@ -199,7 +208,8 @@ fun CastingControlPreview() {
             onTogglePause = {},
             onNext = {},
             onSeek = {},
-            onReset = {}
+            onReset = {},
+            songTitle = "八月のif - Poppin'Party"
         )
     }
 }

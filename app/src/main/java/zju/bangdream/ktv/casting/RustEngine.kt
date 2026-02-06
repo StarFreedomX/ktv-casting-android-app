@@ -40,4 +40,9 @@ object RustEngine {
      * @return 音量，-1 为失败
      */
     external fun jumpToSecs(target: Int): Int
+
+    /**
+     * 获取歌曲标题
+     */
+    external fun getCurrentSongTitle(): String
 }

@@ -1,5 +1,6 @@
 package zju.bangdream.ktv.casting.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import zju.bangdream.ktv.casting.DlnaDeviceItem
 import zju.bangdream.ktv.casting.RustEngine
@@ -14,10 +16,29 @@ import kotlin.concurrent.thread
 
 @Composable
 fun DeviceSelectorScreen(onDeviceSelect: (String, Long, DlnaDeviceItem) -> Unit) {
-    var baseUrl by remember { mutableStateOf("https://ktv.starfreedomx.top") }
-    var roomIdStr by remember { mutableStateOf("1111") }
+    val context = LocalContext.current
+    // 获取 SharedPreferences 实例
+    val prefs = remember { context.getSharedPreferences("ktv_settings", Context.MODE_PRIVATE) }
+
+    // 从本地读取初始值
+    var baseUrl by remember {
+        mutableStateOf(prefs.getString("base_url", "https://ktv.starfreedomx.top") ?: "")
+    }
+    var roomIdStr by remember {
+        mutableStateOf(prefs.getString("room_id", "1111") ?: "")
+    }
+
     var deviceList by remember { mutableStateOf(emptyArray<DlnaDeviceItem>()) }
     var isSearching by remember { mutableStateOf(false) }
+
+    // 保存设置的辅助函数
+    val saveSettings = {
+        prefs.edit().apply {
+            putString("base_url", baseUrl)
+            putString("room_id", roomIdStr)
+            apply()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -47,6 +68,7 @@ fun DeviceSelectorScreen(onDeviceSelect: (String, Long, DlnaDeviceItem) -> Unit)
 
         Button(
             onClick = {
+                saveSettings() // 搜索时保存一次
                 isSearching = true
                 thread {
                     val results = RustEngine.searchDevices()
@@ -70,6 +92,7 @@ fun DeviceSelectorScreen(onDeviceSelect: (String, Long, DlnaDeviceItem) -> Unit)
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
                         .clickable {
+                            saveSettings() // 选择设备进入下一步前保存
                             val roomId = roomIdStr.toLongOrNull() ?: 0L
                             onDeviceSelect(baseUrl, roomId, device)
                         },

@@ -1,5 +1,6 @@
 package zju.bangdream.ktv.casting.ui.screens
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -7,26 +8,33 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import zju.bangdream.ktv.casting.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
     // 状态：各种权限检测
     var isIgnoringBattery by remember { mutableStateOf(checkBatteryOptimizations(context)) }
@@ -68,7 +76,8 @@ fun SettingsScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -128,28 +137,6 @@ fun SettingsScreen(onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
-                    Button(
-                        onClick = { requestIgnoreBatteryOptimizations(context) },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("去设置")
-                    }
-                }
-            }
-
-            // --- 3. 厂商后台管理 ---
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "3. 厂商自启动管理", style = MaterialTheme.typography.titleMedium)
-                    val brand = Build.BRAND.uppercase()
-                    Text(
-                        text = "当前检测到机型: $brand。请开启“自启动”并关闭“省电策略限制”。",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
@@ -157,10 +144,90 @@ fun SettingsScreen(onBack: () -> Unit) {
                         OutlinedButton(onClick = { openAppDetails(context) }) {
                             Text("应用详情")
                         }
-                        Button(onClick = { goManufacturerSetting(context) }) {
-                            Text("跳转管理页")
+                        Button(
+                            onClick = { requestIgnoreBatteryOptimizations(context) }
+                        ) {
+                            Text("去设置")
                         }
                     }
+
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // --- 3. 更多保活策略 ---
+                Text(
+                    text = "有些安卓设备制造商不遵守后台应用程序的标准行为，根据你的设备品牌，你可能需要执行额外的配置。\n" +
+                            "请参阅以下网站，了解有关该问题的更多信息，以及如何提高权限的稳定性：",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = { uriHandler.openUri("https://dontkillmyapp.com/") },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Don't kill my app")
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    thickness = 0.5.dp, // 显式设置厚度更清晰
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+
+                // --- 4. GitHub & 版本信息 ---
+                Spacer(modifier = Modifier.height(16.dp))
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+
+                // 使用 Row 将图标和文字横向排列
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { uriHandler.openUri("https://github.com/StarFreedomX/ktv-casting/tree/android-app") }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_github_logo),
+                            contentDescription = "GitHub",
+                            modifier = Modifier.size(20.dp), // 稍微缩小一点点图标，更精致
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    val versionName = remember {
+                        try {
+                            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                        } catch (e: Exception) {
+                            "1.0.0"
+                        }
+                    }
+
+                    Text(
+                        text = "Version $versionName",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
                 }
             }
         }
@@ -199,6 +266,7 @@ private fun checkBatteryOptimizations(context: Context): Boolean {
     return pm?.isIgnoringBatteryOptimizations(context.packageName) ?: false
 }
 
+@SuppressLint("BatteryLife")
 private fun requestIgnoreBatteryOptimizations(context: Context) {
     try {
         val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
@@ -222,66 +290,5 @@ private fun openAppDetails(context: Context) {
         context.startActivity(intent)
     } catch (e: Exception) {
         e.printStackTrace()
-    }
-}
-
-// --- 厂商跳转逻辑适配 ---
-
-private fun showActivity(context: Context, packageName: String, activityDir: String? = null) {
-    val intent = if (activityDir == null) {
-        context.packageManager.getLaunchIntentForPackage(packageName)
-    } else {
-        Intent().apply {
-            component = ComponentName(packageName, activityDir)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-    }
-    context.startActivity(intent)
-}
-
-private fun goManufacturerSetting(context: Context) {
-    val brand = Build.BRAND?.lowercase() ?: ""
-    try {
-        when {
-            brand.contains("huawei") || brand.contains("honor") -> {
-                try {
-                    showActivity(context, "com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")
-                } catch (e: Exception) {
-                    showActivity(context, "com.huawei.systemmanager", "com.huawei.systemmanager.optimize.bootstart.BootStartActivity")
-                }
-            }
-            brand.contains("xiaomi") || brand.contains("redmi") -> {
-                showActivity(context, "com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
-            }
-            brand.contains("oppo") -> {
-                try { showActivity(context, "com.coloros.phonemanager") }
-                catch (e: Exception) {
-                    try { showActivity(context, "com.oppo.safe") }
-                    catch (e: Exception) {
-                        try { showActivity(context, "com.coloros.oppoguardelf") }
-                        catch (e: Exception) { showActivity(context, "com.coloros.safecenter") }
-                    }
-                }
-            }
-            brand.contains("vivo") -> {
-                showActivity(context, "com.iqoo.secure")
-            }
-            brand.contains("meizu") -> {
-                showActivity(context, "com.meizu.safe")
-            }
-            brand.contains("samsung") -> {
-                try { showActivity(context, "com.samsung.android.sm_cn") }
-                catch (e: Exception) { showActivity(context, "com.samsung.android.sm") }
-            }
-            brand.contains("letv") -> {
-                showActivity(context, "com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")
-            }
-            brand.contains("smartisan") -> {
-                showActivity(context, "com.smartisanos.security")
-            }
-            else -> openAppDetails(context)
-        }
-    } catch (e: Exception) {
-        openAppDetails(context)
     }
 }
