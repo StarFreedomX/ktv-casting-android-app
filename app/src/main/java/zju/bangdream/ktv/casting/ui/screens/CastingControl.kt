@@ -1,6 +1,5 @@
 package zju.bangdream.ktv.casting.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -69,6 +68,10 @@ fun CastingControlContent(
     var showResetDialog by remember { mutableStateOf(false) }
     val displaySec = if (isDraggingProgress) dragProgressValue.toLong() else currentSec
     val totalProgress = if (totalSec > 0) totalSec.toFloat() else 100f
+
+    androidx.activity.compose.BackHandler(enabled = true) {
+        showResetDialog = true
+    }
 
     if (showResetDialog) {
         AlertDialog(

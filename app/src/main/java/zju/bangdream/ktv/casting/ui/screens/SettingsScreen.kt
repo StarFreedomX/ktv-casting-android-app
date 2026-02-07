@@ -33,6 +33,7 @@ import zju.bangdream.ktv.casting.R
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    androidx.activity.compose.BackHandler(onBack = onBack)
     val lifecycleOwner = LocalLifecycleOwner.current
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
