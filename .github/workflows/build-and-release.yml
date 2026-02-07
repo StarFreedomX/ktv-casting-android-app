@@ -73,4 +73,3 @@ jobs:
             ### KTV Casting Android App Release
             - **App Version**: `${{ github.ref_name }}`
             - **Rust Engine Version**: `${{ env.RUST_TAG }}`
-            - **Full Changelog**: https://github.com/StarFreedomX/ktv-casting/commits/${{ github.ref_name }}

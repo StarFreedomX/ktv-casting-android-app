@@ -101,7 +101,7 @@ tasks.register("packRelease") {
                 copy {
                     from(apkFile)
                     into(targetDir)
-                    rename { "$projectName-$abi-v$ver-$date.apk" }
+                    rename { "$projectName-v$ver-$abi.apk" }
                 }
             }
         }
