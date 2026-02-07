@@ -5,18 +5,32 @@ plugins {
 
 android {
     namespace = "zju.bangdream.ktv.casting"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "zju.bangdream.ktv.casting"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
+    // 确保 Gradle 能找到 GitHub Actions 下载的 .so 文件
+    sourceSets {
+        getByName("main") {
+            jniLibs.directories.add("src/main/jniLibs")
+        }
     }
 
     buildTypes {
