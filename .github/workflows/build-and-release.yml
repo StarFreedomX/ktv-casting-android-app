@@ -48,7 +48,7 @@ jobs:
       - name: Decode Keystore
         run: echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > app/release.jks
 
-      # 5. 执行 Gradle 打包并注入签名参数
+      # 5. 执行自定义的 packRelease 任务
       - name: Build Release APK
         env:
           STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
@@ -56,19 +56,21 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/app/release.jks" \
-            -Pandroid.injected.signing.store.password="$STORE_PASSWORD" \
-            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
-            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
-
-      # 6. 创建 GitHub Release 并上传所有生成的 APK
+          ./gradlew packRelease \
+          -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/app/release.jks" \
+          -Pandroid.injected.signing.store.password="$STORE_PASSWORD" \
+          -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+          -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          
+      # 6. 创建 GitHub Release 并上传 apks 文件夹下的新文件名文件
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: app/build/outputs/apk/release/*.apk
+          # 指向根目录下的 apks 文件夹，抓取改名后的所有 APK
+          files: apks/*.apk
           generate_release_notes: true
           body: |
             ### KTV Casting Android App Release
             - **App Version**: `${{ github.ref_name }}`
             - **Rust Engine Version**: `${{ env.RUST_TAG }}`
+            - **Full Changelog**: https://github.com/StarFreedomX/ktv-casting/commits/${{ github.ref_name }}

@@ -1,3 +1,7 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -51,6 +55,7 @@ android {
     }
 }
 
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -68,4 +73,37 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+tasks.register("packRelease") {
+    group = "Pack apk"
+    dependsOn("assembleRelease")
+
+    doLast {
+        val projectName = "KTV-Casting"
+        val ver = android.defaultConfig.versionName ?: "1.0.0"
+        val date = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+
+        // 获取 build 目录
+        val apkDir = File(layout.buildDirectory.get().asFile, "outputs/apk/release")
+        val targetDir = File(rootDir, "apks")
+
+        if (apkDir.exists()) {
+            apkDir.listFiles { f -> f.extension == "apk" }?.forEach { apkFile ->
+                val abi = when {
+                    apkFile.name.contains("arm64-v8a") -> "arm64-v8a"
+                    apkFile.name.contains("armeabi-v7a") -> "armeabi-v7a"
+                    apkFile.name.contains("x86_64") -> "x86_64"
+                    apkFile.name.contains("x86") -> "x86"
+                    apkFile.name.contains("universal") -> "universal"
+                    else -> "release"
+                }
+                copy {
+                    from(apkFile)
+                    into(targetDir)
+                    rename { "$projectName-$abi-v$ver-$date.apk" }
+                }
+            }
+        }
+    }
 }
