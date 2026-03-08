@@ -35,7 +35,7 @@ jobs:
             RUST_TAG="${{ github.event.client_payload.version }}"
             echo "Client Payload Version: $RUST_TAG"
             if [ -z "$RUST_TAG" ] || [ "$RUST_TAG" == "null" ]; then
-              RUST_TAG=$(gh release view --repo birchtree/ktv-casting --json tagName -q .tagName)
+              RUST_TAG=$(gh release view --repo birchtree2/ktv-casting --json tagName -q .tagName)
             fi
             
             # 2. 获取 App 代码版本
