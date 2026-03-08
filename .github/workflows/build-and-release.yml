@@ -8,7 +8,7 @@ on:
     tags:
       - 'v*' # 触发标签，例如 v1.0.0
   repository_dispatch:
-    types:[rust-lib-updated] # 接收来自 Rust 库发出的更新信号
+    types: [rust-lib-updated] # 修复：加了空格，接收来自 Rust 库发出的更新信号
 
 jobs:
   release-apk:
@@ -27,18 +27,17 @@ jobs:
           # 获取当前代码的 Git 短哈希 (前 7 位)
           SHORT_SHA=$(git rev-parse --short HEAD)
           
-          if[ "${{ github.event_name }}" == "repository_dispatch" ]; then
+          # 修复：if 和[ 之间加了空格
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
             # ===== 场景 A：Rust库更新自动触发 =====
             
             # 1. 获取 Rust 库版本
             RUST_TAG="${{ github.event.client_payload.version }}"
-            if [ -z "$RUST_TAG" ] ||[ "$RUST_TAG" == "null" ]; then
-              # 用户名已修改为 birchtree
+            if[ -z "$RUST_TAG" ] || [ "$RUST_TAG" == "null" ]; then
               RUST_TAG=$(gh release view --repo birchtree/ktv-casting --json tagName -q .tagName)
             fi
             
             # 2. 获取 App 代码版本
-            # 找到最近的一个 Tag，如果仓库刚建还没打过任何 Tag，则回退使用 'master' 作为标识
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "master")
             APP_CODE_VERSION="${LATEST_TAG}-${SHORT_SHA}"
             
@@ -75,16 +74,22 @@ jobs:
       # 3. 下载后端 Rust 编译好的 .so 产物（4 种架构）
       - name: Fetch Rust Binaries
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ABIS=("arm64-v8a" "armeabi-v7a" "x86_64" "x86")
           for ABI in "${ABIS[@]}"; do
-            mkdir -p app/src/main/jniLibs/$ABI
-            # 用户名已修改为 birchtree
+            TARGET_DIR="app/src/main/jniLibs/$ABI"
+            mkdir -p "$TARGET_DIR"
+            
+            echo "正在下载 $ABI 架构的动态库..."
+            # 修复：使用 --dir 代替 --output，避开 gh cli 限制
             gh release download ${{ env.RUST_TAG }} \
               --repo birchtree/ktv-casting \
               --pattern "libktv_casting_lib-$ABI.so" \
-              --output app/src/main/jniLibs/$ABI/libktv_casting_lib.so
+              --dir "$TARGET_DIR"
+              
+            # 修复：下载后重命名，去掉名字里的架构后缀，使其符合 Android JNI 规范
+            mv "$TARGET_DIR/libktv_casting_lib-$ABI.so" "$TARGET_DIR/libktv_casting_lib.so"
           done
 
       # 4. 还原签名文件
@@ -99,7 +104,8 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew packRelease \
+          # 注意：如果你的打包命令不是自定义的 packRelease，请改为 assembleRelease
+          ./gradlew assembleRelease \
           -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/app/release.jks" \
           -Pandroid.injected.signing.store.password="$STORE_PASSWORD" \
           -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
@@ -110,7 +116,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.FINAL_RELEASE_TAG }} 
-          files: apks/*.apk
+          # 注意：请核对这里的路径，默认通常是 app/build/outputs/apk/release/*.apk
+          files: app/build/outputs/apk/release/*.apk 
           generate_release_notes: true
           body: |
             ### KTV Casting Android App Release
