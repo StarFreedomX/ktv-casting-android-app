@@ -85,7 +85,7 @@ jobs:
             echo "正在下载 $ABI 架构的动态库..."
             # 修复：使用 --dir 代替 --output，避开 gh cli 限制
             gh release download ${{ env.RUST_TAG }} \
-              --repo birchtree/ktv-casting \
+              --repo birchtree2/ktv-casting \
               --pattern "libktv_casting_lib-$ABI.so" \
               --dir "$TARGET_DIR"
               
