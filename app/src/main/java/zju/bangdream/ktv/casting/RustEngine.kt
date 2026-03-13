@@ -5,6 +5,31 @@ object RustEngine {
         System.loadLibrary("ktv_casting_lib")
     }
 
+    private fun mapLevel(level: Int): LogLevel {
+        return when (level) {
+            0 -> LogLevel.VERBOSE
+            1 -> LogLevel.DEBUG
+            2 -> LogLevel.INFO
+            3 -> LogLevel.WARN
+            4 -> LogLevel.ERROR
+            else -> LogLevel.UNKNOWN
+        }
+    }
+
+    /**
+     * Rust 侧可通过 JNI 直接调用，用于回传日志。
+     * 签名示例（Rust/Java）：
+     *   zju/bangdream/ktv/casting/RustEngine.onRustLog(int, String, String)
+     */
+    @JvmStatic
+    fun onRustLog(level: Int, tag: String, message: String) {
+        LogRepository.add(mapLevel(level), tag, message)
+    }
+
+    fun logFromKotlin(tag: String, message: String, level: LogLevel = LogLevel.DEBUG) {
+        LogRepository.add(level, tag, message)
+    }
+
     // 基础接口
     external fun initLogging(level: Int)
     external fun searchDevices(): Array<DlnaDeviceItem>

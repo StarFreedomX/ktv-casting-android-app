@@ -37,7 +37,8 @@ fun SettingsScreen(onBack: () -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
-    // 状态：各种权限检测
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
     var isIgnoringBattery by remember { mutableStateOf(checkBatteryOptimizations(context)) }
     var isNotificationEnabled by remember { mutableStateOf(checkNotificationPermission(context)) }
 
@@ -54,7 +55,7 @@ fun SettingsScreen(onBack: () -> Unit) {
     }
 
     Scaffold(
-        topBar = {
+fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
             TopAppBar(
                 title = { Text("后台运行设置") },
                 navigationIcon = {
@@ -117,6 +118,28 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }
             }
 
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.List, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "查看运行日志", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Button(onClick = onOpenLogs) {
+                        Text("打开")
+                    }
+                }
+            }
+
             // --- 2. 电池优化 ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -154,29 +177,6 @@ fun SettingsScreen(onBack: () -> Unit) {
 
                 }
             }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // --- 3. 更多保活策略 ---
-                Text(
-                    text = "有些安卓设备制造商不遵守后台应用程序的标准行为，根据你的设备品牌，你可能需要执行额外的配置。\n" +
-                            "请参阅以下网站，了解有关该问题的更多信息，以及如何提高权限的稳定性：",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(
-                    onClick = { uriHandler.openUri("https://dontkillmyapp.com/") },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) {
-                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text("Don't kill my app")
                 }
 
@@ -254,6 +254,29 @@ private fun openNotificationSettings(context: Context) {
                     putExtra("app_package", context.packageName)
                     putExtra("app_uid", context.applicationInfo.uid)
                 }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.List, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "查看运行日志", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Button(onClick = onOpenLogs) {
+                        Text("打开")
+                    }
+                }
+            }
             }
         }
         context.startActivity(intent)

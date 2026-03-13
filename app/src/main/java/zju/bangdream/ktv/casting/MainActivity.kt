@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import zju.bangdream.ktv.casting.ui.screens.CastingControlScreen
 import zju.bangdream.ktv.casting.ui.screens.DeviceSelectorScreen
+import zju.bangdream.ktv.casting.ui.screens.LogScreen
 import zju.bangdream.ktv.casting.ui.screens.SettingsScreen
 import zju.bangdream.ktv.casting.ui.theme.KtvCastingTheme
 
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setupSystemRequirements()
         RustEngine.initLogging(2)
+    RustEngine.logFromKotlin("MainActivity", "应用启动", LogLevel.INFO)
 
         setContent {
             KtvCastingTheme {
@@ -37,7 +39,12 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     if (currentScreen == "settings") {
-                        SettingsScreen(onBack = { currentScreen = "main" })
+                        SettingsScreen(
+                            onBack = { currentScreen = "main" },
+                            onOpenLogs = { currentScreen = "logs" }
+                        )
+                    } else if (currentScreen == "logs") {
+                        LogScreen(onBack = { currentScreen = "settings" })
                     } else {
                         Box {
                             // 原有的主逻辑
@@ -82,6 +89,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startCastingService(url: String, room: Long, device: DlnaDeviceItem) {
+        RustEngine.logFromKotlin("Casting", "启动投屏服务: $url, room=$room")
         val intent = Intent(this, CastingService::class.java).apply {
             putExtra("base_url", url)
             putExtra("room_id", room)
