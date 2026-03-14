@@ -1,7 +1,6 @@
 package zju.bangdream.ktv.casting.ui.screens
 
 import android.annotation.SuppressLint
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -31,18 +30,15 @@ import zju.bangdream.ktv.casting.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
     val context = LocalContext.current
     androidx.activity.compose.BackHandler(onBack = onBack)
     val lifecycleOwner = LocalLifecycleOwner.current
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.List
     var isIgnoringBattery by remember { mutableStateOf(checkBatteryOptimizations(context)) }
     var isNotificationEnabled by remember { mutableStateOf(checkNotificationPermission(context)) }
 
-    // 自动刷新逻辑
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -55,7 +51,7 @@ import androidx.compose.material.icons.filled.List
     }
 
     Scaffold(
-fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
+        topBar = {
             TopAppBar(
                 title = { Text("后台运行设置") },
                 navigationIcon = {
@@ -88,7 +84,6 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // --- 1. 通知权限 (新增) ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -122,29 +117,6 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.List, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "查看运行日志", style = MaterialTheme.typography.titleMedium)
-                    }
-                    Button(onClick = onOpenLogs) {
-                        Text("打开")
-                    }
-                }
-            }
-
-            // --- 2. 电池优化 ---
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -168,15 +140,56 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
                         OutlinedButton(onClick = { openAppDetails(context) }) {
                             Text("应用详情")
                         }
-                        Button(
-                            onClick = { requestIgnoreBatteryOptimizations(context) }
-                        ) {
+                        Button(onClick = { requestIgnoreBatteryOptimizations(context) }) {
                             Text("去设置")
                         }
                     }
-
                 }
             }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "查看运行日志", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Button(onClick = onOpenLogs) {
+                        Text("打开")
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "有些安卓设备制造商不遵守后台应用程序的标准行为，根据你的设备品牌，你可能需要执行额外的配置。\n" +
+                        "请参阅以下网站，了解有关该问题的更多信息，以及如何提高权限的稳定性：",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = { uriHandler.openUri("https://dontkillmyapp.com/") },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text("Don't kill my app")
                 }
 
@@ -184,11 +197,10 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
 
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 32.dp),
-                    thickness = 0.5.dp, // 显式设置厚度更清晰
+                    thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                 )
 
-                // --- 4. GitHub & 版本信息 ---
                 Spacer(modifier = Modifier.height(16.dp))
 
                 HorizontalDivider(
@@ -197,7 +209,6 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                 )
 
-                // 使用 Row 将图标和文字横向排列
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -211,7 +222,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_github_logo),
                             contentDescription = "GitHub",
-                            modifier = Modifier.size(20.dp), // 稍微缩小一点点图标，更精致
+                            modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -235,8 +246,6 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
     }
 }
 
-// --- 工具方法 ---
-
 private fun checkNotificationPermission(context: Context): Boolean {
     return NotificationManagerCompat.from(context).areNotificationsEnabled()
 }
@@ -254,29 +263,6 @@ private fun openNotificationSettings(context: Context) {
                     putExtra("app_package", context.packageName)
                     putExtra("app_uid", context.applicationInfo.uid)
                 }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.List, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "查看运行日志", style = MaterialTheme.typography.titleMedium)
-                    }
-                    Button(onClick = onOpenLogs) {
-                        Text("打开")
-                    }
-                }
-            }
             }
         }
         context.startActivity(intent)

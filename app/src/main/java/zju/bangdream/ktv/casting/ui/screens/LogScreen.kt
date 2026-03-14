@@ -7,7 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,7 +54,7 @@ fun LogScreen(onBack: () -> Unit) {
                         }
                         clipboard.setText(AnnotatedString(text))
                     }) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "复制")
+                        Icon(Icons.Default.Share, contentDescription = "复制")
                     }
                 }
             )

@@ -5,6 +5,8 @@ permissions:
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'v*' # 触发标签，例如 v1.0.0
   repository_dispatch:
