@@ -19,6 +19,7 @@ import kotlin.concurrent.thread
 @Composable
 fun CastingControlScreen(
     device: DlnaDeviceItem,
+    roomId: Long,
     onReset: () -> Unit
 ) {
     val progressState by CastingService.playbackProgress.collectAsState()
@@ -31,6 +32,7 @@ fun CastingControlScreen(
 
     CastingControlContent(
         deviceName = device.name,
+        roomId = roomId,
         songTitle = songTitle, // 传入标题
         currentSec = currentSec,
         totalSec = totalSec,
@@ -54,6 +56,7 @@ fun CastingControlScreen(
 @Composable
 fun CastingControlContent(
     deviceName: String,
+    roomId: Long,
     songTitle: String, // 新增
     currentSec: Long,
     totalSec: Long,
@@ -107,16 +110,32 @@ fun CastingControlContent(
         Text(text = "正在投屏至", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         Spacer(modifier = Modifier.height(8.dp))
 
-        Surface(
-            color = Color(0xFFEEEEEE),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = deviceName,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.DarkGray
-            )
+            Surface(
+                color = Color(0xFFEEEEEE),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = deviceName,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.DarkGray
+                )
+            }
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "房间号: $roomId",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(25.dp))
@@ -229,6 +248,7 @@ fun CastingControlPreview() {
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFFFF3377))) {
         CastingControlContent(
             deviceName = "Preview Device",
+            roomId = 8888,
             currentSec = 45,
             totalSec = 210,
             isPlaying = true,
