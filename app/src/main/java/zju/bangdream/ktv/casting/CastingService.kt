@@ -50,7 +50,7 @@ class CastingService : Service() {
         }
 
         // 2. 初始化 Rust 引擎
-    RustEngine.startEngine(baseUrl, roomId.toString(), location)
+        RustEngine.startEngine(baseUrl, roomId.toString(), location)
 
         // 3. 开启轮询逻辑
         startCommanderLoop()
@@ -68,7 +68,7 @@ class CastingService : Service() {
                 if (progress.size < 2) continue
 
                 val current = progress[0].toLong()
-                val total = progress[1].toLong()
+                val total = progress[1].toLong() // 直接取原始值，包含 10 小时 (36000s)
 
 
                 val title = RustEngine.getCurrentSongTitle() // 获取 Rust 层存储的标题
