@@ -1,5 +1,6 @@
 package zju.bangdream.ktv.casting
 
+import android.content.Context
 import android.content.Intent
 import android.net.wifi.WifiManager
 import android.os.Build
@@ -28,7 +29,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setupSystemRequirements()
         RustEngine.initLogging(2)
-    RustEngine.logFromKotlin("MainActivity", "应用启动", LogLevel.INFO)
+        RustEngine.logFromKotlin("MainActivity", "应用启动", LogLevel.INFO)
 
         setContent {
             KtvCastingTheme {
@@ -56,10 +57,11 @@ class MainActivity : ComponentActivity() {
                 var selectedDevice by rememberSaveable(stateSaver = deviceSaver) {
                     mutableStateOf<DlnaDeviceItem?>(null)
                 }
-                var selectedRoomId by rememberSaveable { mutableStateOf(0L) }
+                var selectedRoomId by rememberSaveable { mutableLongStateOf(0L) }
                 var selectedBaseUrl by rememberSaveable { mutableStateOf("") }
-                // 添加导航状态
                 var currentScreen by rememberSaveable { mutableStateOf("main") }
+
+                val prefs = remember { getSharedPreferences("ktv_settings", Context.MODE_PRIVATE) }
 
                 Surface(
                     modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
@@ -74,7 +76,6 @@ class MainActivity : ComponentActivity() {
                         LogScreen(onBack = { currentScreen = "settings" })
                     } else {
                         Box {
-                            // 原有的主逻辑
                             if (selectedDevice == null) {
                                 DeviceSelectorScreen(onDeviceSelect = { url, room, device ->
                                     selectedDevice = device
@@ -86,16 +87,36 @@ class MainActivity : ComponentActivity() {
                                 CastingControlScreen(
                                     device = selectedDevice!!,
                                     roomId = selectedRoomId,
-                                    onReset = {
-                                        stopService(Intent(this@MainActivity, CastingService::class.java))
-                                        RustEngine.resetEngine()
+                                    baseUrl = selectedBaseUrl,
+                                    onStop = {
+                                        stopCasting()
                                         selectedDevice = null
                                         selectedRoomId = 0L
                                         selectedBaseUrl = ""
+                                    },
+                                    onChangeSettings = { newUrl, newRoomId ->
+                                        stopCasting()
+                                        selectedBaseUrl = newUrl
+                                        selectedRoomId = newRoomId
+                                        
+                                        // 同步到持久化存储
+                                        prefs.edit().apply {
+                                            putString("base_url", newUrl)
+                                            putString("room_id", newRoomId.toString())
+                                            apply()
+                                        }
+
+                                        selectedDevice?.let {
+                                            startCastingService(newUrl, newRoomId, it)
+                                        }
+                                    },
+                                    onChangeDevice = { newDevice ->
+                                        stopCasting()
+                                        selectedDevice = newDevice
+                                        startCastingService(selectedBaseUrl, selectedRoomId, newDevice)
                                     }
                                 )
                             }
-
 
                             IconButton(
                                 onClick = { currentScreen = "settings" },
@@ -103,7 +124,6 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 Icon(Icons.Default.Settings, contentDescription = "设置")
                             }
-
                         }
                     }
                 }
@@ -118,6 +138,12 @@ class MainActivity : ComponentActivity() {
         val wifiManager = getSystemService(WIFI_SERVICE) as WifiManager
         val multicastLock = wifiManager.createMulticastLock("ktv_search_lock")
         multicastLock.acquire()
+    }
+
+    private fun stopCasting() {
+        stopService(Intent(this, CastingService::class.java))
+        RustEngine.resetEngine()
+        CastingService.resetProgress()
     }
 
     private fun startCastingService(url: String, room: Long, device: DlnaDeviceItem) {
