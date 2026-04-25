@@ -54,11 +54,6 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLogs: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("后台运行设置") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 actions = {
                     IconButton(onClick = {
                         isIgnoringBattery = checkBatteryOptimizations(context)
